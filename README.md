@@ -4,12 +4,13 @@ A fullstack CQRS app inspired by https://www.youtube.com/watch?v=qDNPQo9UmJA
 
 
 # TODO
-- [ ] set up kafka stream
-  - 3 topics
+- [x] set up kafka stream
+  - [x] docker
+  - [x] create 3 topics
     - pending
     - accepted
     - failed
+- [ ] build web servixes logic
+  - [x] install ring and liberator
+- [ ] find a kafka read/write lib
 - [ ] set up web services container 
-  - [ ] clojure
-  - [ ] install ring
-  - [ ] find a kafka read/write lib
