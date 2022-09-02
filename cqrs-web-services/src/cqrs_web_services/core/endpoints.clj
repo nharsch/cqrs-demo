@@ -1,7 +1,8 @@
-(ns cqrs-web-services.core
+(ns cqrs-web-services.core.endpoints
   (:require [liberator.core :refer [resource defresource]]
             [ring.middleware.params :refer [wrap-params]]
-            [compojure.core :refer [defroutes ANY]]))
+            [compojure.core :refer [defroutes ANY]]
+            [cqrs-web-services.core.log-connector]))
 
 
 (defroutes app
