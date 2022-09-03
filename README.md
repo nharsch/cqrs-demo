@@ -10,7 +10,21 @@ A fullstack CQRS app inspired by https://www.youtube.com/watch?v=qDNPQo9UmJA
     - pending
     - accepted
     - failed
-- [ ] build web servixes logic
+- [x] find a kafka read/write lib
+- [ ] build web services logic
   - [x] install ring and liberator
-- [ ] find a kafka read/write lib
+  - [ ] create `commands` enpoint
+    - [x] accept POST
+    - [ ] put on queue
+  - [ ] create `updates` endpoint
+    - [ ] websockets
+    - [ ] read `pending` and echo
+
+  - [ ] create user logic
+    - generate UUID
+    - email
 - [ ] set up web services container 
+- [ ] set up consumer services
+  - read from pending
+  - transact to DB
+  - update `accepted`

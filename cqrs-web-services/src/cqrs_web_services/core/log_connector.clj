@@ -4,7 +4,6 @@
    [ketu.async.sink :as sink]
    [clojure.core.async :refer [chan close! <! <!! >! >!! put! take! go]]))
 
-
 (def <accepted (chan 10))
 (def accepted (source/source <accepted {:name "pending-consumer"
                                         :brokers "localhost:9093"
@@ -12,7 +11,6 @@
                                         :group-id "pending-consumers"
                                         :value-type :string
                                         :shape :value}))
-
 (go (println  (<! <accepted)))
 
 (def >pending (chan 10))
@@ -22,10 +20,10 @@
                                   :value-type :string
                                   :shape :value}))
 
-(doseq [x (range 10)]
-  (>!! >pending (str "tester " x)))
+(doseq [x (range 10)] (>!! >pending (str "tester " x)))
 
-(>!! >pending "and another")
+(>!! >pending "is it funny?")
+(<!! <accepted)
 
 
 (close! >pending)
