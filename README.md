@@ -15,7 +15,7 @@ A fullstack CQRS app inspired by https://www.youtube.com/watch?v=qDNPQo9UmJA
   - [x] install ring and liberator
   - [ ] create `commands` enpoint
     - [x] accept POST
-    - [ ] put on queue
+    - [x] put on queue
   - [ ] create `updates` endpoint
     - [ ] websockets
     - [ ] read `pending` and echo
@@ -28,3 +28,7 @@ A fullstack CQRS app inspired by https://www.youtube.com/watch?v=qDNPQo9UmJA
   - read from pending
   - transact to DB
   - update `accepted`
+
+Later:
+- [ ] add spec to validate input data
+- [ ] sync version of commands post

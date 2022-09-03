@@ -11,20 +11,17 @@
                                         :group-id "pending-consumers"
                                         :value-type :string
                                         :shape :value}))
-(go (println  (<! <accepted)))
-
-(def >pending (chan 10))
-(def pending (sink/sink >pending {:name "pending-producer"
-                                  :brokers "localhost:9092" ;; TODO: make a config param
-                                  :topic "pending" ;; TODO: config param
-                                  :value-type :string
-                                  :shape :value}))
-
-(doseq [x (range 10)] (>!! >pending (str "tester " x)))
-
-(>!! >pending "is it funny?")
-(<!! <accepted)
 
 
-(close! >pending)
-(source/stop! accepted)
+(defn add-to-pending! [v]
+  (let [>pending (chan 10)
+        pending (sink/sink >pending {:name "pending-producer"
+                                     :brokers "localhost:9092" ;; TODO: make a config param
+                                     :topic "pending" ;; TODO: config param
+                                     :value-type :string
+                                     :shape :value})]
+    (go
+      (>! >pending v))))
+
+;; (add-to-pending! "another")
+;; (defn take-from-accepted! [v] (go (<! <accepted)))
