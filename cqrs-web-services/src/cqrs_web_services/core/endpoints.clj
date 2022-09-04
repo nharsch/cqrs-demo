@@ -5,10 +5,6 @@
             [cqrs-web-services.core.log-connector :refer [add-to-pending!]]
             [clojure.core.async :refer [chan go]]))
 
-(defn pend [v]
-  (add-to-pending! v)
-  )
-
 
 (defroutes app
   (ANY "/" [] (resource :available-media-types ["text/html"]
@@ -17,13 +13,14 @@
         (resource
          :allowed-methods [:post]
          :available-media-types ["application/edn"]
-         :handle-ok "get"
+         :handle-ok (fn [ctx] (format (pr-str {:response "Command sent"})))
          :post! (fn [ctx] ;; TODO: move out of handler body
-                  (go
-                   (let [command
-                         (slurp (get-in ctx [:request :body]))]
-                     ;; TODO: validate with schema
-                     (add-to-pending! command)))
+                  (let [command
+                        (slurp (get-in ctx [:request :body]))]
+                    ;; TODO: validate with schema
+                    (add-to-pending! command)
+                    {:body (str "Command sent: " command)}
+                    )
                   )
          )
         ))
