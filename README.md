@@ -13,16 +13,15 @@ A fullstack CQRS app inspired by https://www.youtube.com/watch?v=qDNPQo9UmJA
 - [x] find a kafka read/write lib
 - [ ] build web services logic
   - [x] install ring and liberator
-  - [ ] create `commands` enpoint
+  - [x] create `commands` enpoint
     - [x] accept POST
     - [x] put on queue
   - [ ] create `updates` endpoint
     - [ ] websockets
     - [ ] read `pending` and echo
-
-  - [ ] create user logic
-    - generate UUID
-    - email
+  - [ ] create client app
+    - [ ] form that accepts/validates email
+    - [ ] generate UUID
 - [ ] set up web services container 
 - [ ] set up consumer services
   - read from pending
