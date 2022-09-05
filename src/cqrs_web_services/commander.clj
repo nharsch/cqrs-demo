@@ -28,7 +28,7 @@
                 >accepted              ; to ch
                 (map (fn [v]
                        (let [msg (pr-str {:event-id (str (java.util.UUID/randomUUID))
-                                          :parent (:command-id  (read-string v))})] ;; TODO: user serialzier / spec
+                                          :parent (read-string v)})]  ;; TODO: user serialzier / spec
                          (println msg)
                          msg)))
                 <pending               ; from ch
