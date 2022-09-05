@@ -15,4 +15,7 @@
                  [clj-http "3.12.3"]
                  [com.appsflyer/ketu "0.6.0"]
                  [ring-sse/ring-sse "master"]
-                 [ring/ring-core "1.6.3"]])
+                 [ring/ring-core "1.6.3"]]
+  :javac-options     ["-target" "1.8" "-source" "1.8"]
+  :profiles {:runtime       {:aot          :all
+                             :omit-source  true}})
