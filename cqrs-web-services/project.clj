@@ -2,7 +2,7 @@
   :description "web service layer for a CQRS app"
   :plugins [[lein-ring "0.12.6"]
             [reifyhealth/lein-git-down "0.4.1"]]
-  :ring {:handler cqrs-web-services.core.endpoints/handler
+  :ring {:handler cqrs-web-services.rest/handler
          :async? true}
   :source-paths ["src"]
   :middleware [lein-git-down.plugin/inject-properties]

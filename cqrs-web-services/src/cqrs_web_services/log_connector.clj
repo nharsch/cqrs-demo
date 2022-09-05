@@ -15,15 +15,10 @@
 (defonce >pending (chan 10))
 (defonce pending (sink/sink >pending {:name "pending-producer"
                                       :brokers "localhost:9092" ;; TODO: make a config param
-                                      :topic "pending" ;; TODO: config param
+                                      :topic "accepted" ;; TODO: config param
                                       :value-type :string
                                       :shape :value}))
 
 (defn add-to-pending! [v]
   (go
     (>! >pending v)))
-
-;; (close! >pending)
-;; (source/stop! accepted)
-;; (add-to-pending! "another")
-;; (defn take-from-accepted! [v] (go (<! <accepted)))
