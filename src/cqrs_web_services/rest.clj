@@ -9,7 +9,7 @@
 
 (defonce <accepted (a/chan 10))
 (defonce accepted (source/source <accepted {:name "accepted-consumer"
-                                        :brokers "localhost:29093"
+                                        :brokers "localhost:29092,localhost:29093"
                                         :topic "accepted" ;; TODO: config param
                                         :group-id "accepted-consumers"
                                         :auto-offset-reset "earliest"
@@ -18,7 +18,7 @@
 
 (defonce >pending (a/chan 10))
 (defonce pending (sink/sink >pending {:name "pending-producer"
-                                      :brokers "localhost:29092" ;; TODO: make a config param
+                                      :brokers "localhost:29092,localhost:29093" ;; TODO: make a config param
                                       :topic "pending" ;; TODO: config param
                                       :value-type :string
                                       :shape :value}))

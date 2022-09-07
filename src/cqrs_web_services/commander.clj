@@ -23,13 +23,12 @@
                                        :value-type :string
                                        :shape :value})]
     (println "COMMANDER: creating pending->accepted consumer pipeline")
-    (a/>!! >accepted "test accepted init")
     (a/pipeline 1                      ; threads
                 >accepted              ; to ch
                 (map (fn [v]
                        (let [msg (pr-str {:event-id (str (java.util.UUID/randomUUID))
                                           :parent (read-string v)})]  ;; TODO: user serialzier / spec
-                         (println msg)
+                         ;; (println msg)
                          msg)))
                 <pending               ; from ch
                 false                  ; close when 'from' runs out?
