@@ -35,13 +35,18 @@
           ((resource
             :allowed-methods [:post]
             :available-media-types ["application/edn"]
-            :handle-ok (fn [ctx] (format (pr-str {:response "Command sent"})))
+            :handle-created (fn [ctx] (format (:command ctx)))
             :post! (fn [ctx] ;; TODO: move out of handler body
-                     (let [command
-                           (slurp (get-in ctx [:request :body]))]
-                       ;; TODO: validate with schema
-                       (a/go (a/>! >pending command))
-                       )))
+                     (dosync
+                      (let [command (-> (slurp (get-in ctx [:request :body]))
+                                        read-string
+                                        (assoc :id (str (java.util.UUID/randomUUID)))
+                                        pr-str)]
+                        ;; TODO: validate with schema
+                        (a/go (a/>! >pending command))
+                        (println "sending back command: " command)
+                        {:command command}
+                        ))))
            request))))
   (GET "/accepted" []
     (sse/event-channel-handler
@@ -54,6 +59,12 @@
                 )
             (recur)))
         {:on-client-disconnect #(println "client-disconnect" %)})))
+
+(comment
+  (-> req-command
+      read-string
+      (assoc :id (str (java.util.UUID/randomUUID)))
+      pr-str))
 
 (def handler
   (-> app

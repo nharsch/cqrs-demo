@@ -65,3 +65,7 @@ services:
       # INDEXER_GROUP_ID: dev-indexer
     depends_on:
       - kafka1
+    volumes:
+      - db:/usr/src/app/db-data
+volumes:
+  db:
