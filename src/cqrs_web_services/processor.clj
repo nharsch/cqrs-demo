@@ -152,10 +152,16 @@
 (defn process-command-value! [v >events >errors]
   (println (str "PROCESSOR: processing value: " v))
   (let [cmd (read-string v)
-        res (handle-command! cmd)]
+        res (assoc (handle-command! cmd) :event-id (str (java.util.UUID/randomUUID)))]
     ;; TODO: how to handle errors?
-    (cond (:event res) (a/go (a/>! >events (assoc res :event-id (str (java.util.UUID/randomUUID)))))
-          (:error res) (a/go (a/>! >errors (assoc res :event-id (str (java.util.UUID/randomUUID)))))
+    (cond (:event res)
+          (do
+            (println (str "emitting event" res))
+            (a/go (a/>! >events res)))
+          (:error res)
+          (do
+            (println (str "emitting error: " res))
+            (a/go (a/>! >errors res)))
           :else (throw (Exception. "process-command-value! did not result in event or error")))))
 
 ;; (process-command-value! (pr-str {:id 98089 :command "create-user" :data {:name "test" :email "test@test.com"}}))
@@ -184,15 +190,15 @@
                                        :value-type :string
                                        :shape :value})]
     (println "PROCESSOR: creating pending->accepted consumer pipeline")
-    (a/go-loop []
-      (let [cmd (a/<! <pending)]
-        (process-command-value! [cmd >accepted >failure]))
-      (recur))))
+    (a/<!! (a/go-loop []
+                  (let [cmd (a/<! <pending)]
+                    (process-command-value! cmd >accepted >failure))
+                  (recur)))))
 
 (comment
-  (dosync
-   (a/>!! >accepted "comment")
-   (source/stop! pending)
-   (a/close! >accepted)
-   (a/close! handle-pipe)
-   ))
+  (a/>!! >failure "comment")
+  (a/<!! <failure)
+  (source/stop! pending)
+  (a/close! >accepted)
+  (a/close! handle-pipe)
+)

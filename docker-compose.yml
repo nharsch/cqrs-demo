@@ -66,5 +66,7 @@ services:
       - kafka1
     volumes:
       - db:/usr/src/app/db-data
+      - .:/usr/src/app/
+
 volumes:
   db:

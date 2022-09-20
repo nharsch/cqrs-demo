@@ -11,12 +11,12 @@
 ;; TODO: should we open these channels per request?
 (defonce <accepted (a/chan 10))
 (defonce accepted (source/source <accepted {:name "accepted-consumer"
-                                        :brokers "localhost:29092,localhost:29093"
-                                        :topic "accepted" ;; TODO: config param
-                                        :group-id "accepted-consumers"
-                                        :auto-offset-reset "earliest"
-                                        :value-type :string
-                                        :shape :value}))
+                                            :brokers "localhost:29092,localhost:29093"
+                                            :topic "accepted" ;; TODO: config param
+                                            :group-id "accepted-consumers"
+                                            :auto-offset-reset "earliest"
+                                            :value-type :string
+                                            :shape :value}))
 
 (defonce >pending (a/chan 10))
 (defonce pending (sink/sink >pending {:name "pending-producer"
@@ -24,13 +24,20 @@
                                       :topic "pending" ;; TODO: config param
                                       :value-type :string
                                       :shape :value}))
-
+(def <failure (a/chan 10))
+(def failure-src (source/source <failure {:name "failure-producer"
+                                          :brokers "localhost:29092,localhost:29093" ;; TODO: make a config param
+                                          :group-id "failure-consumers"
+                                          :topic "failure"       ;; TODO: config param
+                                          :value-type :string
+                                          :shape :value}))
 
 (defroutes app
   (ANY "/" [] (fn [request respond raise]
                 (respond ((resource :available-media-types ["text/html"]
-                                     :handle-ok "<html>Hello world</html>")
+                                    :handle-ok "<html>Hello world</html>")
                           request))))
+
   (ANY "/commands" []
        ;; TODO: make sync version
        (fn [request respond raise]
@@ -53,14 +60,26 @@
                         {:command command}
                         ))))
            request))))
+
   (GET "/accepted" []
-    (sse/event-channel-handler
+       (sse/event-channel-handler
         (fn [request response raise event-ch]
           (a/go-loop []
-              (let [acc (a/<! <accepted)
-                    ess-msg {:data acc}]
-                (a/>! event-ch ess-msg)
-                (a/<! (a/timeout 300)))
+            (let [acc (a/<! <accepted)
+                  ess-msg {:data acc}]
+              (a/>! event-ch ess-msg)
+              (a/<! (a/timeout 300)))
+            (recur)))
+        {:on-client-disconnect #(println "client-disconnect" %)}))
+
+  (GET "/errors" []
+       (sse/event-channel-handler
+        (fn [request response raise event-ch]
+          (a/go-loop []
+            (let [acc (a/<! <failure)
+                  ess-msg {:data acc}]
+              (a/>! event-ch ess-msg)
+              (a/<! (a/timeout 300)))
             (recur)))
         {:on-client-disconnect #(println "client-disconnect" %)})))
 

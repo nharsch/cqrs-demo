@@ -13,10 +13,9 @@
                  [liberator "0.15.1"]
                  [io.replikativ/datahike "0.5.1511"]
                  [compojure "1.6.0"]
-                 [clj-http "3.12.3"]
                  [com.appsflyer/ketu "0.6.0"]
                  [ring-sse/ring-sse "master"]
-                 [ring/ring-core "1.6.3"]]
+                 [ring/ring-core "1.9.3"]]
   :javac-options     ["-target" "1.8" "-source" "1.8"]
   :profiles {:runtime       {:aot          :all
                              :omit-source  true}})
