@@ -7,6 +7,8 @@
             [compojure.core :refer [defroutes ANY POST GET]]
             [clojure.core.async :as a]))
 
+
+;; TODO: should we open these channels per request?
 (defonce <accepted (a/chan 10))
 (defonce accepted (source/source <accepted {:name "accepted-consumer"
                                         :brokers "localhost:29092,localhost:29093"
@@ -30,7 +32,9 @@
                                      :handle-ok "<html>Hello world</html>")
                           request))))
   (ANY "/commands" []
+       ;; TODO: make sync version
        (fn [request respond raise]
+         ;; TODO: return 202
          (respond
           ((resource
             :allowed-methods [:post]
@@ -38,9 +42,10 @@
             :handle-created (fn [ctx] (format (:command ctx)))
             :post! (fn [ctx] ;; TODO: move out of handler body
                      (dosync
+                      ;; TODO: make function
                       (let [command (-> (slurp (get-in ctx [:request :body]))
                                         read-string
-                                        (assoc :id (str (java.util.UUID/randomUUID)))
+                                        (assoc :id (str (java.util.UUID/randomUUID))) ;; just add an ID
                                         pr-str)]
                         ;; TODO: validate with schema
                         (a/go (a/>! >pending command))
@@ -55,8 +60,7 @@
               (let [acc (a/<! <accepted)
                     ess-msg {:data acc}]
                 (a/>! event-ch ess-msg)
-                (a/<! (a/timeout 300))
-                )
+                (a/<! (a/timeout 300)))
             (recur)))
         {:on-client-disconnect #(println "client-disconnect" %)})))
 
