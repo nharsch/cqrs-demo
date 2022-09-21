@@ -66,7 +66,7 @@
         (fn [request response raise event-ch]
           (a/go-loop []
             (let [acc (a/<! <accepted)
-                  ess-msg {:data acc}]
+                  ess-msg {:data acc}] ;; TODO: get any more info from kafka chan, like timestamp?
               (a/>! event-ch ess-msg)
               (a/<! (a/timeout 300)))
             (recur)))
@@ -76,8 +76,8 @@
        (sse/event-channel-handler
         (fn [request response raise event-ch]
           (a/go-loop []
-            (let [acc (a/<! <failure)
-                  ess-msg {:data acc}]
+            (let [err (a/<! <failure)
+                  ess-msg {:data err}] ;; TODO: get any more info from kafka chan, like timestamp?
               (a/>! event-ch ess-msg)
               (a/<! (a/timeout 300)))
             (recur)))

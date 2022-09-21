@@ -152,17 +152,18 @@
 (defn process-command-value! [v >events >errors]
   (println (str "PROCESSOR: processing value: " v))
   (let [cmd (read-string v)
-        res (assoc (handle-command! cmd) :event-id (str (java.util.UUID/randomUUID)))]
+        res (pr-str (assoc (handle-command! cmd) :event-id (str (java.util.UUID/randomUUID))))]
     ;; TODO: how to handle errors?
-    (cond (:event res)
-          (do
-            (println (str "emitting event" res))
-            (a/go (a/>! >events res)))
-          (:error res)
-          (do
-            (println (str "emitting error: " res))
-            (a/go (a/>! >errors res)))
-          :else (throw (Exception. "process-command-value! did not result in event or error")))))
+    (a/go
+      (cond (:event res)
+            (do
+              (println (str "emitting event" res))
+              (a/>! >events res))
+            (:error res)
+            (do
+              (println (str "emitting error: " res))
+              (a/>! >errors res))
+            :else (throw (Exception. "process-command-value! did not result in event or error"))))))
 
 ;; (process-command-value! (pr-str {:id 98089 :command "create-user" :data {:name "test" :email "test@test.com"}}))
 ;; (process-command-value! (pr-str {:id 98089 :command "subscribe-to-channel" :data {:user/name "test" :channel/name "cool stuff"}}))
@@ -191,14 +192,34 @@
                                        :shape :value})]
     (println "PROCESSOR: creating pending->accepted consumer pipeline")
     (a/<!! (a/go-loop []
-                  (let [cmd (a/<! <pending)]
-                    (process-command-value! cmd >accepted >failure))
-                  (recur)))))
+             (let [cmd (a/<! <pending)]
+               (process-command-value! cmd >accepted >failure))
+             (recur)))))
+
+
 
 (comment
+  (def  >failure (a/chan 10))
+  (def failure (sink/sink >failure {:name "failure-producer"
+                                    :brokers "localhost:29092" ;; TODO: make a config param
+                                    :topic "failure" ;; TODO: config param
+                                    :value-type :string
+                                    :shape :value}))
+  (def  <failure (a/chan 10))
+  (def  fail-src (source/source <failure {:name "failure-consumer"
+                                          :brokers "localhost:29092" ;; TODO: make a config param
+                                          :topic "failure" ;; TODO: config param
+                                          :group-id "failure-consumers"
+                                          :auto-offset-reset "earliest"
+                                          :value-type :string
+                                          :shape :value}))
+  (keys  fail-src)
   (a/>!! >failure "comment")
-  (a/<!! <failure)
+  (a/poll! >failure)
+  (a/poll!  ( (nth (keys failure) 1) failure))
+  ((last (keys fail-src)) fail-src)
+  (a/poll! <failure)
   (source/stop! pending)
   (a/close! >accepted)
   (a/close! handle-pipe)
-)
+  )
