@@ -11,6 +11,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/core.async "1.5.648"]
                  [liberator "0.15.1"]
+                 [buddy/buddy-auth "3.0.1"]
                  [io.replikativ/datahike "0.5.1511"]
                  [compojure "1.6.0"]
                  [com.appsflyer/ketu "0.6.0"]
