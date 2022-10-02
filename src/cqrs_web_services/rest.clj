@@ -1,6 +1,7 @@
 (ns cqrs-web-services.rest
   (:require [clojure.core.async :as a]
-            [buddy.auth.backends :as backends]
+            [buddy.auth :refer [authenticated? throw-unauthorized]]
+            [buddy.auth.backends.session :refer [session-backend]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.auth.accessrules :refer (success error wrap-access-rules)]
             [compojure.core :refer [defroutes ANY POST GET]]
@@ -8,6 +9,7 @@
             [ketu.async.sink :as sink]
             [liberator.core :refer [resource defresource]]
             [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.session :refer [wrap-session]]
             [ring.util.response :refer [redirect]]
             [ring.sse :as sse]))
 
@@ -16,8 +18,8 @@
 (def authdata
   "Global var that stores valid users with their
    respective passwords."
-  {:username "secret"
-   :password "secret"})
+  {:username "test-user"
+   :password "pass"})
 
 
 ;; TODO: should we open these channels per request?
@@ -45,19 +47,22 @@
                                           :value-type :string
                                           :shape :value}))
 
-(def backend (backends/session))
-
-
-
 
 (defroutes app
   (ANY "/" []
        ;; TODO: render FE app
        (fn [request respond raise]
-         (respond {:status 200
-                   :headers {}
-                   :available-media-types ["text/html"]
-                   :body "<html>Hello world...</html>"})))
+         (let [identity (get-in request [:session :identity])]
+           (if (authenticated? request)
+             (respond {:status 200
+                       :headers {}
+                       :available-media-types ["text/html"]
+                       :body (format "<html>Hello %s</html>" identity)})
+             (respond {:status 200
+                       :headers {}
+                       :available-media-types ["text/html"]
+                       :body "<html>You must login</html>"}))) ;; todo login form
+         ))
 
   (POST "/register" []
        (fn [request respond raise]
@@ -83,13 +88,11 @@
         (fn [request respond raise]
           (let [user (read-string (slurp (:body request)))
                 session (:session request)]
-            (println "user" user)
             (if (= user authdata)
               (respond (-> (redirect "http://localhost:3000/") ;; TODO: get redirect URL
                            (assoc :session (assoc session :identity (:username user)))))
               (respond {:status 400 :body "not auth"})
               )
-
             )
           )
         )
@@ -139,36 +142,45 @@
             (recur)))
         {:on-client-disconnect #(println "client-disconnect" %)})))
 
-(comment
-  (-> req-command
-      read-string
-      (assoc :id (str (java.util.UUID/randomUUID)))
-      pr-str))
+(defn unauthorized-handler
+  [request metadata]
+  (cond
+    ;; If request is authenticated, raise 403 instead
+    ;; of 401 (because user is authenticated but permission
+    ;; denied is raised).
+    (authenticated? request) (on-error [request metadata])
+    ;; In other cases, redirect the user to login page.
+    :else (let [current-url (:uri request)]
+      (redirect (format "/login?next=%s" current-url)))))
+
+
+(def backend (session-backend {:unauthorized-handler unauthorized-handler}))
 
 (defn regular-access [request]
+  (println "reg access")
+  (println "identity: " (str (get-in request [:session :identity])))
   true)
-
-(defn authenticate-user [user]
-  true
-  )
 
 (defn authenticated-access
   [request]
-  (println (str "request map" request))
-  (if (:identity request)
-    (authenticate-user (:identity-request))
-    ;; TODO actually authenticate
-    (error "Only authenticated users allowed"))
-  )
+  (println "authenticated-access")
+  (println "identity: " (str (get-in request [:session :identity])))
+  (if (get-in [:session :identity] request)
+    true
+    (error "Only authenticated users allowed")))
 
-(def rules [{:pattern #"^/login" :handler regular-access}
-            {:pattern #"^/.+" :handler authenticated-access}])
+(def rules [
+            {:pattern #"^/commands*" :handler authenticated-access}
+            {:pattern #"^/accepted*" :handler authenticated-access}
+            {:pattern #"^/errors*" :handler authenticated-access}
+            {:pattern #"^/*" :handler regular-access}])
+
 
 (defn on-error
   [request value]
   {:status 403
    :headers {}
-   :body "Not authorized"})
+   :body "Authenticated but not authorized"})
 
 ;; (def handler app)
 (def handler
@@ -177,4 +189,5 @@
       (wrap-authentication backend)
       (wrap-authorization backend)
       (wrap-access-rules {:rules rules :on-error on-error})
+      wrap-session
       ))
