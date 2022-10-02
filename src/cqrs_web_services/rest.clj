@@ -8,7 +8,16 @@
             [ketu.async.sink :as sink]
             [liberator.core :refer [resource defresource]]
             [ring.middleware.params :refer [wrap-params]]
+            [ring.util.response :refer [redirect]]
             [ring.sse :as sse]))
+
+
+;; TODO: remove
+(def authdata
+  "Global var that stores valid users with their
+   respective passwords."
+  {:username "secret"
+   :password "secret"})
 
 
 ;; TODO: should we open these channels per request?
@@ -27,6 +36,7 @@
                                       :topic "pending" ;; TODO: config param
                                       :value-type :string
                                       :shape :value}))
+
 (def <failure (a/chan 10))
 (def failure-src (source/source <failure {:name "failure-producer"
                                           :brokers "localhost:29092,localhost:29093" ;; TODO: make a config param
@@ -38,6 +48,8 @@
 (def backend (backends/session))
 
 
+
+
 (defroutes app
   (ANY "/" []
        ;; TODO: render FE app
@@ -46,6 +58,41 @@
                    :headers {}
                    :available-media-types ["text/html"]
                    :body "<html>Hello world...</html>"})))
+
+  (POST "/register" []
+       (fn [request respond raise]
+         (respond
+          ((resource
+            :allowed-methods [:post]
+            :available-media-types ["application/edn"]
+            :handle-created (fn [ctx] (format (:command ctx)))
+            :post! (fn [ctx]
+                     (dosync
+                      (let [id (str (java.util.UUID/randomUUID)) ;; just add an ID
+                            user (-> (slurp (get-in ctx [:request :body]))
+                                     read-string
+                                     (assoc :id id) ;; just add an ID
+                                     )]
+                        ;; TODO: submit create-user command
+                        ;; TODO: listen for event on event chan or error on err channel or timeout
+                        ;; TODO: return OK on event, raise on err or timeout
+                        )))) ;; TODO login handler
+           request))))
+
+  (POST "/login" []
+        (fn [request respond raise]
+          (let [user (read-string (slurp (:body request)))
+                session (:session request)]
+            (println "user" user)
+            (if (= user authdata)
+              (respond (-> (redirect "http://localhost:3000/") ;; TODO: get redirect URL
+                           (assoc :session (assoc session :identity (:username user)))))
+              (respond {:status 400 :body "not auth"})
+              )
+
+            )
+          )
+        )
 
   (ANY "/commands" []
        ;; TODO: make sync version
@@ -98,14 +145,24 @@
       (assoc :id (str (java.util.UUID/randomUUID)))
       pr-str))
 
+(defn regular-access [request]
+  true)
+
+(defn authenticate-user [user]
+  true
+  )
+
 (defn authenticated-access
   [request]
+  (println (str "request map" request))
   (if (:identity request)
-    true
-    (error "Only authenticated users allowed")))
+    (authenticate-user (:identity-request))
+    ;; TODO actually authenticate
+    (error "Only authenticated users allowed"))
+  )
 
-(def rules [{:pattern #"^/.+"
-             :handler authenticated-access}])
+(def rules [{:pattern #"^/login" :handler regular-access}
+            {:pattern #"^/.+" :handler authenticated-access}])
 
 (defn on-error
   [request value]
