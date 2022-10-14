@@ -10,9 +10,15 @@
             [liberator.core :refer [resource defresource]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.session :refer [wrap-session]]
-            [ring.util.response :refer [redirect]]
+            [ring.middleware.resource :refer [wrap-resource]]
+            [ring.util.response :refer [redirect resource-response]]
             [ring.sse :as sse]))
 
+(defn on-error
+  [request value]
+  {:status 403
+   :headers {}
+   :body "Not authorized"})
 
 ;; TODO: remove
 (def authdata
@@ -48,21 +54,12 @@
                                           :shape :value}))
 
 
+
+;; TODO: move out of REST?
 (defroutes app
   (ANY "/" []
        ;; TODO: render FE app
-       (fn [request respond raise]
-         (let [identity (get-in request [:session :identity])]
-           (if (authenticated? request)
-             (respond {:status 200
-                       :headers {}
-                       :available-media-types ["text/html"]
-                       :body (format "<html>Hello %s</html>" identity)})
-             (respond {:status 200
-                       :headers {}
-                       :available-media-types ["text/html"]
-                       :body "<html>You must login</html>"}))) ;; todo login form
-         ))
+       (resource-response "index.html"))
 
   (POST "/register" []
        (fn [request respond raise]
@@ -88,6 +85,7 @@
         (fn [request respond raise]
           (let [user (read-string (slurp (:body request)))
                 session (:session request)]
+            ;; TODO: write real authentication check
             (if (= user authdata)
               (respond (-> (redirect "http://localhost:3000/") ;; TODO: get redirect URL
                            (assoc :session (assoc session :identity (:username user)))))
@@ -185,6 +183,7 @@
 ;; (def handler app)
 (def handler
   (-> app
+      (wrap-resource "public") ;; static
       wrap-params ;; wraps the app with request params
       (wrap-authentication backend)
       (wrap-authorization backend)

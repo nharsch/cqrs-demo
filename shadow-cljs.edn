@@ -1,0 +1,17 @@
+;; shadow-cljs configuration
+{
+ :source-paths
+ ["src"]
+
+ :dependencies
+ [[cider/cider-nrepl "0.21.1"]]
+
+ :builds
+ {:app {:target :browser
+        :output-dir "resources/public/js"
+        :asset-path "/js" ;; relative url to js assets
+
+        :modules {:main
+                  {:init-fn cqrs-client.app/init}}
+        }}
+ }
